@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/run-deseq2.yml'
       - 'GSE271171_native_DESeq2.R'
+      - 'GSE221483_native_DESeq2.R'
 
 permissions:
   contents: read
@@ -47,12 +48,19 @@ jobs:
           set -o pipefail
           Rscript GSE271171_native_DESeq2.R 2>&1 | tee native-DESeq2.log
 
+      - name: Run GSE221483 native DESeq2 analysis
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE221483_native_DESeq2.R 2>&1 | tee GSE221483-native-DESeq2.log
+
       - name: Save Irf7 results and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GSE271171-native-DESeq2-results
+          name: GSE221483-GSE271171-native-DESeq2-results
           path: |
             results/
             native-DESeq2.log
+            GSE221483-native-DESeq2.log
           if-no-files-found: warn
