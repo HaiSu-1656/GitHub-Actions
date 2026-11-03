@@ -8,13 +8,13 @@ x <- read.delim(input, check.names=FALSE, stringsAsFactors=FALSE)
 sample_names <- c("C1","C2","C3","I1","I2","I3")
 stopifnot(all(c("gene_id","gene_name",sample_names) %in% names(x)))
 stopifnot(!anyNA(x$gene_id), !anyDuplicated(x$gene_id))
-counts <- as.matrix(x[,sample_names,drop=FALSE])
-rownames(counts) <- x$gene_id
-storage.mode(counts) <- "numeric"
-stopifnot(!anyNA(counts),all(counts>=0),all(abs(counts-round(counts))<1e-8))
-storage.mode(counts) <- "integer"
+count_mat <- as.matrix(x[,sample_names,drop=FALSE])
+rownames(count_mat) <- x$gene_id
+storage.mode(count_mat) <- "numeric"
+stopifnot(!anyNA(count_mat),all(count_mat>=0),all(abs(count_mat-round(count_mat))<1e-8))
+storage.mode(count_mat) <- "integer"
 coldata <- data.frame(condition=factor(c(rep("Control",3),rep("IL1b",3)),levels=c("Control","IL1b")),row.names=sample_names)
-dds <- DESeqDataSetFromMatrix(countData=counts,colData=coldata,design=~condition)
+dds <- DESeqDataSetFromMatrix(countData=count_mat,colData=coldata,design=~condition)
 dds <- DESeq(dds,test="Wald",fitType="parametric",quiet=FALSE)
 res <- results(dds,contrast=c("condition","IL1b","Control"),alpha=0.05,independentFiltering=TRUE)
 tab <- as.data.frame(res)
@@ -30,7 +30,7 @@ one$n_Control <- 3L
 one$n_IL1b <- 3L
 write.csv(one,file.path(outdir,"GSE271171_Irf7_DESeq2_Wald_padj.csv"),row.names=FALSE,na="NA")
 norm <- counts(dds,normalized=TRUE)
-sam <- data.frame(sample=sample_names,condition=as.character(coldata$condition),raw_count=as.integer(counts[id,]),normalized_count=as.numeric(norm[id,]))
+sam <- data.frame(sample=sample_names,condition=as.character(coldata$condition),raw_count=as.integer(count_mat[id,]),normalized_count=as.numeric(norm[id,]))
 write.csv(sam,file.path(outdir,"GSE271171_Irf7_normalized_counts.csv"),row.names=FALSE)
 f <- function(v) if (is.na(v)) "NA" else formatC(v,format="g",digits=8)
 lines <- c("GSE271171 native DESeq2",paste("DESeq2 version:",as.character(packageVersion("DESeq2"))),"Comparison: IL-1beta vs Control (n=3+3)",
