@@ -6,6 +6,7 @@ on:
       - '.github/workflows/run-deseq2.yml'
       - 'GSE114007_prepare_counts.py'
       - 'GSE114007_native_DESeq2.R'
+      - 'GSE57218_paired_limma.R'
   workflow_dispatch:
 
 permissions:
@@ -39,15 +40,30 @@ jobs:
         run: |
           set -o pipefail
           Rscript GSE114007_native_DESeq2.R 2>&1 | tee GSE114007_DESeq2.log
+      - name: Install limma and GEOquery
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bioc::limma
+            bioc::GEOquery
+
+      - name: Run GSE57218 paired IRF7 analysis
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE57218_paired_limma.R 2>&1 | tee GSE57218_limma.log
+
       - name: Save counts, expression, and statistics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GSE114007-IRF7-DESeq2-platform-adjusted
+          name: GSE114007-GSE57218-IRF7-results
           path: |
             results/GSE114007/*.csv
             results/GSE114007/*.png
             results/GSE114007/*.txt
             GSE114007_prepare.log
             GSE114007_DESeq2.log
+            results/GSE57218/
+            GSE57218_limma.log
           if-no-files-found: warn
