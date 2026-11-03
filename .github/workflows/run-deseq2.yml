@@ -1,31 +1,53 @@
-name: GSE114007 human cartilage counts inspection
+name: GSE114007 human cartilage IRF7 native DESeq2
 
 on:
   push:
     paths:
       - '.github/workflows/run-deseq2.yml'
-      - 'GSE114007_probe.py'
+      - 'GSE114007_prepare_counts.py'
+      - 'GSE114007_native_DESeq2.R'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  probe:
+  deseq2:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Install xlsx parser
         run: python -m pip install --break-system-packages openpyxl
-      - name: Inspect GSE114007 raw counts and IRF7
+      - name: Download and validate count matrix
+        shell: bash
         run: |
           set -o pipefail
-          python -u GSE114007_probe.py 2>&1 | tee GSE114007_probe.log
-      - uses: actions/upload-artifact@v4
-        if: always()
+          python -u GSE114007_prepare_counts.py 2>&1 | tee GSE114007_prepare.log
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
         with:
-          name: GSE114007-inspection
+          r-version: 'release'
+          use-public-rspm: true
+      - name: Install original DESeq2
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bioc::DESeq2
+      - name: Native DESeq2 differential expression
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE114007_native_DESeq2.R 2>&1 | tee GSE114007_DESeq2.log
+      - name: Save counts, expression, and statistics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSE114007-IRF7-DESeq2-platform-adjusted
           path: |
-            results/GSE114007/GSE114007_probe.json
-            GSE114007_probe.log
+            results/GSE114007/*.csv
+            results/GSE114007/*.png
+            results/GSE114007/*.txt
+            GSE114007_prepare.log
+            GSE114007_DESeq2.log
+          if-no-files-found: warn
