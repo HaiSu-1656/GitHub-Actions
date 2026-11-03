@@ -1,0 +1,58 @@
+name: GSE271171 native DESeq2
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/run-deseq2.yml'
+      - 'GSE271171_native_DESeq2.R'
+
+permissions:
+  contents: read
+
+jobs:
+  deseq2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download GEO raw count matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 \
+            -o GSE271171_gene_count.txt.gz \
+            'https://ftp.ncbi.nlm.nih.gov/geo/series/GSE271nnn/GSE271171/suppl/GSE271171_gene_count.txt.gz'
+          gzip -t GSE271171_gene_count.txt.gz
+          ls -lh GSE271171_gene_count.txt.gz
+          md5sum GSE271171_gene_count.txt.gz
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install official Bioconductor DESeq2
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bioc::DESeq2
+
+      - name: Run native DESeq2 analysis
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE271171_native_DESeq2.R 2>&1 | tee native-DESeq2.log
+
+      - name: Save Irf7 results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSE271171-native-DESeq2-results
+          path: |
+            results/
+            native-DESeq2.log
+          if-no-files-found: warn
