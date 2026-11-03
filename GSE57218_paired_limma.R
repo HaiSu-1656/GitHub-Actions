@@ -89,7 +89,7 @@ summary <- c("GSE57218 GPL6947, 73 total GSM samples, 33 matched pairs (n=66), 7
  paste("Limma BH adjusted P.value:",format(one$adj.P.Val[1],digits=9)),
  paste("Paired t-test P.value:",format(tr$p.value,digits=9)),
  paste("Wilcoxon signed-rank P.value:",format(wil$p.value,digits=9)),
- paste("Samples increasing IRF7:",sum(delta>0),"decreasing:",sum(delta<0),"zero:",sum(delta==0),
+ paste("Samples increasing IRF7:",sum(delta>0),"decreasing:",sum(delta<0),"zero:",sum(delta==0)),
  paste("Expression data range:",paste(range(sub,na.rm=TRUE),collapse=" to ")))
 cat(paste(summary,collapse="\n"),"\n")
 writeLines(summary,file.path(outdir,"GSE57218_IRF7_summary.txt"))
