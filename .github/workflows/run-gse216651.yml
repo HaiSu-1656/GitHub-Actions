@@ -1,0 +1,37 @@
+name: GSE216651 IRF7 single-cell donor-level reanalysis
+
+on:
+  push:
+    paths:
+      - '.github/workflows/run-gse216651.yml'
+      - 'GSE216651_IRF7_scRNA_pipeline.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  expression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install sparse matrix and statistics dependencies
+        run: python -m pip install --no-cache-dir numpy pandas scipy matplotlib
+      - name: Process nine sample-level 10x matrices
+        shell: bash
+        run: |
+          set -o pipefail
+          python -u GSE216651_IRF7_scRNA_pipeline.py 2>&1 | tee GSE216651_IRF7.log
+      - name: Archive IRF7 expression and patient-level statistics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSE216651-IRF7-donor-level-results
+          path: |
+            results/GSE216651/
+            GSE216651_IRF7.log
+          if-no-files-found: warn
