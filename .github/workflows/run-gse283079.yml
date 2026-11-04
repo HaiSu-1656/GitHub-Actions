@@ -1,0 +1,53 @@
+name: GSE283079 human synovium IRF7 native DESeq2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/run-gse283079.yml'
+      - 'GSE283079_native_DESeq2.R'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deseq2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official GEO gene-level estimated count matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 6 --retry-delay 5 \
+            --connect-timeout 30 --max-time 300 \
+            'https://ftp.ncbi.nlm.nih.gov/geo/series/GSE283nnn/GSE283079/suppl/GSE283079_gene_count_RNAseq.txt.gz' \
+            -o GSE283079_gene_count_RNAseq.txt.gz
+          gzip -t GSE283079_gene_count_RNAseq.txt.gz
+          ls -lh GSE283079_gene_count_RNAseq.txt.gz
+          zcat GSE283079_gene_count_RNAseq.txt.gz | head -c 500 || true
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      - name: Install Bioconductor DESeq2
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bioc::DESeq2
+      - name: Native DESeq2, Wald test, BH-adjusted P
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE283079_native_DESeq2.R 2>&1 | tee GSE283079_DESeq2.log
+      - name: Upload full statistics and plot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSE283079-IRF7-native-DESeq2-results
+          path: |
+            results/GSE283079/
+            GSE283079_DESeq2.log
+          if-no-files-found: warn
