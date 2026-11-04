@@ -1,0 +1,56 @@
+name: GSE89408 RA synovium IRF7 DESeq2
+on:
+  push:
+    paths:
+      - '.github/workflows/run-gse89408-ra.yml'
+      - 'GSE89408_RA_IRF7_DESeq2.R'
+      - 'GSE89408_RA_GEO_metadata.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deseq2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve original GEO count matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-delay 4 --connect-timeout 25 --max-time 300 \
+            'https://ftp.ncbi.nlm.nih.gov/geo/series/GSE89nnn/GSE89408/suppl/GSE89408_GEO_count_matrix_rename.txt.gz' \
+            -o GSE89408_GEO_count_matrix_rename.txt.gz
+          gzip -t GSE89408_GEO_count_matrix_rename.txt.gz
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pandas
+      - name: Audit source sample metadata
+        shell: bash
+        run: |
+          set -o pipefail
+          python -u GSE89408_RA_GEO_metadata.py 2>&1 | tee GSE89408_RA_metadata.log
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bioc::DESeq2
+      - name: Fit IRF7 RA contrasts with native DESeq2
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE89408_RA_IRF7_DESeq2.R 2>&1 | tee GSE89408_RA_DESeq2.log
+      - name: Upload statistics and expression plot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSE89408-IRF7-RA-DESeq2-results
+          path: |
+            results/GSE89408_RA/
+            GSE89408_RA_metadata.log
+            GSE89408_RA_DESeq2.log
+          if-no-files-found: warn
