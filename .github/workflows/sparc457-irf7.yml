@@ -1,0 +1,32 @@
+name: SPARC457 extract IRF7 meta-analysis results
+on:
+  push:
+    paths:
+      - '.github/workflows/sparc457-irf7.yml'
+      - 'SPARC457_IRF7_extract.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests pandas openpyxl xlrd
+      - name: Read integrated cross-platform IRF7 tables
+        shell: bash
+        run: |
+          set -o pipefail
+          python -u SPARC457_IRF7_extract.py 2>&1 | tee SPARC457_IRF7.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SPARC457-IRF7-all-tables
+          path: |
+            results/SPARC457_IRF7/
+            SPARC457_IRF7.log
+          if-no-files-found: warn
