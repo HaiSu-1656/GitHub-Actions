@@ -8,6 +8,7 @@ on:
       - 'GSE114007_native_DESeq2.R'
       - 'GSE57218_paired_limma.R'
       - 'GSE55235_limma_IRF7.R'
+      - 'GSE55457_limma_IRF7.R'
   workflow_dispatch:
 
 permissions:
@@ -60,11 +61,17 @@ jobs:
           set -o pipefail
           Rscript GSE55235_limma_IRF7.R 2>&1 | tee GSE55235_limma.log
 
+      - name: Run GSE55457 human synovium IRF7
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE55457_limma_IRF7.R 2>&1 | tee GSE55457_limma.log
+
       - name: Save counts, expression, and statistics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GSE114007-GSE57218-GSE55235-results
+          name: GSE114007-GSE57218-GSE55235-GSE55457-results
           path: |
             results/GSE114007/*.csv
             results/GSE114007/*.png
@@ -75,4 +82,6 @@ jobs:
             GSE57218_limma.log
             results/GSE55235/
             GSE55235_limma.log
+            results/GSE55457/
+            GSE55457_limma.log
           if-no-files-found: warn
