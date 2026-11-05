@@ -1,0 +1,47 @@
+name: GSE254682 OA synovium IRF7 native DESeq2
+on:
+  push:
+    paths:
+      - '.github/workflows/run-gse254682.yml'
+      - 'GSE254682_IRF7_native_DESeq2.R'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deseq2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official GSE254682 processed matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-delay 4 --connect-timeout 25 --max-time 300 \
+            'https://ftp.ncbi.nlm.nih.gov/geo/series/GSE254nnn/GSE254682/suppl/GSE254682_processed_matrix.csv.gz' \
+            -o GSE254682_processed_matrix.csv.gz
+          gzip -t GSE254682_processed_matrix.csv.gz
+          sha256sum GSE254682_processed_matrix.csv.gz
+          ls -lh GSE254682_processed_matrix.csv.gz
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bioc::DESeq2
+      - name: DESeq2 Wald test OA vs Control
+        shell: bash
+        run: |
+          set -o pipefail
+          Rscript GSE254682_IRF7_native_DESeq2.R 2>&1 | tee GSE254682_DESeq2.log
+      - name: Upload results and execution log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSE254682-IRF7-native-DESeq2-results
+          path: |
+            results/GSE254682/
+            GSE254682_DESeq2.log
+          if-no-files-found: warn
